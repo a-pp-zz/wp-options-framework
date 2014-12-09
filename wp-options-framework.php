@@ -174,9 +174,9 @@ if ( !class_exists ('WP_Options_Framework') ) {
 			
 			switch ( $type ) {
 
-			case 'checkbox':
+				case 'checkbox':
 				
-				echo '<input class="checkbox' . $field_class . '" type="checkbox" id="' . $id . '" name="'.$option.'[' .$section. '][' . $id . ']" value="1" ' . checked( $options[$section][$id], 1, false ) . ' /> <label for="' . $id . '">' . $desc . '</label>';
+					echo '<input class="checkbox' . $field_class . '" type="checkbox" id="' . $id . '" name="'.$option.'[' .$section. '][' . $id . ']" value="1" ' . checked( $options[$section][$id], 1, false ) . ' /> <label for="' . $id . '">' . $desc . '</label>';
 				
 				break;				
 				
@@ -191,7 +191,7 @@ if ( !class_exists ('WP_Options_Framework') ) {
 					if ( $desc != '' )
 						echo '<p class="description">' . $desc . '</p>';
 					
-					break;
+				break;
 				
 				case 'radio':
 					$i = 0;
@@ -205,7 +205,7 @@ if ( !class_exists ('WP_Options_Framework') ) {
 					if ( $desc != '' )
 						echo '<p class="description">' . $desc . '</p>';
 					
-					break;
+				break;
 
 				case 'checkboxes':
 					$i = 0;
@@ -220,7 +220,7 @@ if ( !class_exists ('WP_Options_Framework') ) {
 					if ( $desc != '' )
 						echo '<p class="description">' . $desc . '</p>';
 					
-					break;
+				break;
 				
 				case 'textarea':
 					echo '<textarea class="' . $field_class . '" id="' . $id . '" name="'.$option.'[' .$section. '][' . $id . ']" placeholder="' . $std . '" rows="5" cols="30">' . wp_htmledit_pre( $options[$section][$id] ) . '</textarea>';
@@ -228,7 +228,7 @@ if ( !class_exists ('WP_Options_Framework') ) {
 					if ( $desc != '' )
 						echo '<p class="description">' . $desc . '</p>';
 					
-					break;
+				break;
 				
 				case 'password':
 					echo '<input class="regular-text' . $field_class . '" type="password" id="' . $id . '" name="'.$option.'[' .$section. '][' . $id . ']" value="' . esc_attr( $options[$section][$id] ) . '" />';
@@ -236,34 +236,34 @@ if ( !class_exists ('WP_Options_Framework') ) {
 					if ( $desc != '' )
 						echo '<p class="description">' . $desc . '</p>';
 					
-					break;
+				break;
 
-        case 'editor':
-        	wp_editor( $options[$section][$id], $id, array( 'textarea_name' => $option.'[' .$section. '][' . $id . ']' ) );
-        	if($desc)  echo '<p class="description">'. $desc .'</p>';
-        break;	
+		        case 'editor':
+		        	wp_editor( $options[$section][$id], $id, array( 'textarea_name' => $option.'[' .$section. '][' . $id . ']' ) );
+		        	if($desc)  echo '<p class="description">'. $desc .'</p>';
+		        break;	
 
-		    case 'file':
-            $val = esc_attr($options[$section][$id]);
-		        echo '<input type="text" name="'.$option.'[' .$section. '][' . $id . ']" id="'. $id .'" value="'. $val .'" class="regular-text'. $class .'" /> ';
-            echo '<input type="button" class="button wpsf-browse" id="'. $id .'_button" value="'.__('Browse').'" />';
-            echo '<script type="text/javascript">
-                jQuery(document).ready(function($){
-            		$("#'. $id .'_button").click(function() {
-            			tb_show("", "media-upload.php?post_id=0&amp;type=file&amp;TB_iframe=true");
-            			window.original_send_to_editor = window.send_to_editor;
-                    	window.send_to_editor = function(html) {
-												$(html).filter("a").each( function(k, v){
-												   $("#'. $id .'").val($(v).attr("href"));
-												});                    		
-                    		tb_remove();
-                    		window.send_to_editor = window.original_send_to_editor;
-                    	};
-            			return false;
-            		});
-                });
-                </script>';
-        break;     
+			    case 'file':
+	            $val = esc_attr($options[$section][$id]);
+			        echo '<input type="text" name="'.$option.'[' .$section. '][' . $id . ']" id="'. $id .'" value="'. $val .'" class="regular-text'. $class .'" /> ';
+	            echo '<input type="button" class="button wpsf-browse" id="'. $id .'_button" value="'.__('Browse').'" />';
+	            echo '<script type="text/javascript">
+	                jQuery(document).ready(function($){
+	            		$(".wp-options-framework #'. $id .'_button").click(function() {
+	            			tb_show("", "media-upload.php?post_id=0&amp;type=file&amp;TB_iframe=true");
+	            			window.original_send_to_editor = window.send_to_editor;
+	                    	window.send_to_editor = function(html) {
+													$(html).filter("a").each( function(k, v){
+													   $("#'. $id .'").val($(v).attr("href"));
+													});                    		
+	                    		tb_remove();
+	                    		window.send_to_editor = window.original_send_to_editor;
+	                    	};
+	            			return false;
+	            		});
+	                });
+	                </script>';
+	        	break;     
 
 				case 'color':
 			 		echo '<input class="regular-text wp-color-picker' . $field_class . '" type="text" id="' . $id . '" name="'.$option.'[' .$section. '][' . $id . ']" placeholder="' . $std . '" value="' . esc_attr( $options[$section][$id] ) . '" />';
@@ -273,9 +273,9 @@ if ( !class_exists ('WP_Options_Framework') ) {
 
 			 		echo '<script type="text/javascript">
 			 					jQuery(document).ready(function($){
-    							$(".wp-color-picker").wpColorPicker();
+    							$(".wp-options-framework .wp-color-picker").wpColorPicker();
 								});
-								</script>';
+						</script>';
 			 		
 			 	break;           				
 				
@@ -286,10 +286,8 @@ if ( !class_exists ('WP_Options_Framework') ) {
 			 		if ( $desc != '' )
 			 			echo '<p class="description">' . $desc . '</p>';
 			 		
-			 	break;
-			 	
-			}
-			
+			 	break;			 	
+			}			
 		}
 		
 		private function initialize_fields ( $tab = '' ) {			
