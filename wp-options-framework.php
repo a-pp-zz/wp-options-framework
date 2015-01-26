@@ -68,7 +68,7 @@ if ( !class_exists ('WP_Options_Framework') ) {
 				}
 
 				if ( ! get_option( $option ) ) {
-					add_option ($option, '', '', 'no');
+					add_option ($option);
 					$this->initialize_fields ($tab_id);
 				}				
 			}
