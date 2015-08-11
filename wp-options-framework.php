@@ -1,16 +1,16 @@
 <?php
 /*
   Plugin Name: WP Options Framework
-  Description: Сервисный модуль для создания страниц с настройками
+  Description: Service package which help implementation The Setting API of Wordpress
   Author: CoolSwitcher
-  Version: 2.5
+  Version: 2.6
   License: GPL
 */
 
 /**
  * 
  * @package WP_Options_Framework
- * @since 2.0
+ * @since 2.7
  * 
  **/
 
@@ -86,12 +86,12 @@ if ( !class_exists ('WP_Options_Framework') ) {
 	          wp_enqueue_script('thickbox');
 	          wp_enqueue_style('thickbox');          
 
-	    	  wp_enqueue_script( 'wp-color-picker' );          
-	    	  wp_enqueue_style( 'wp-color-picker' );		
+	    	  wp_enqueue_script('wp-color-picker');          
+	    	  wp_enqueue_style('wp-color-picker');		
 
-			  wp_enqueue_script( 'maskedinput', plugins_url( 'js/jquery.maskedinput.min.js', __FILE__ ), array ('jquery') );
-			  wp_enqueue_script( 'maskedinput-handler', plugins_url( 'js/maskedinput.handler.js', __FILE__ ), array ('jquery', 'maskedinput') );		    	    	
-	  	}		
+			  wp_enqueue_script('maskedinput', plugins_url( 'js/jquery.maskedinput.min.js', __FILE__ ), array ('jquery') );
+			  wp_enqueue_script('maskedinput-handler', plugins_url( 'js/maskedinput.handler.js', __FILE__ ), array ('jquery', 'maskedinput') );
+		}		
 
 	    public function admin_notices() {
 	      	settings_errors();
@@ -102,8 +102,8 @@ if ( !class_exists ('WP_Options_Framework') ) {
 			$defaults = array(
 				'id'        => 'default_field',
 				'fid'       => 'default_field_id',
-				'title'     => __( 'Default Field', 'coptions' ),
-				'desc'      => __( 'This is a default description.', 'coptions' ),
+				'title'     => 'default field',
+				'desc'      => 'This is a default description.',
 				'std'       => '',
 				'type'      => 'text',
 				'section'   => 'general',
@@ -316,11 +316,8 @@ if ( !class_exists ('WP_Options_Framework') ) {
 						$setting['id'] = $id;	
 						$this->create_setting( $setting, $tab_id );
 					}	
-
 				}			
-
-			}						
-			
+			}									
 		}
 
 		private function get_first_tab () {
@@ -333,17 +330,18 @@ if ( !class_exists ('WP_Options_Framework') ) {
 		private function render_tabs () {
 			if ( $this->init !== TRUE )
 				return FALSE;			
-	    $current_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : $this->get_first_tab();
-	    $page = !empty ($this->page_name) ? $this->page_name : '';
+		    $current_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : $this->get_first_tab();
+		    $page = !empty ($this->page_name) ? $this->page_name : '';
 
-	    screen_icon();
-	    echo '<h2>' . $this->title . '</h2>';
-	    echo '<h2 class="nav-tab-wrapper">';
-	    foreach ( $this->tabs as $tab_key => $tab ) {
-	        $active = $current_tab == $tab_key ? 'nav-tab-active' : '';
-	        echo '<a class="nav-tab ' . $active . '" href="'.$page.'?page=' . $this->option_key . '&tab=' . $tab_key . '">' . $tab['name'] . '</a>';
-	    }
-	    echo '</h2>';			
+		    echo '<h2>' . $this->title . '</h2>';
+		    echo '<h2 class="nav-tab-wrapper">';
+		    foreach ( $this->tabs as $tab_key => $tab ) {
+		        $active = $current_tab == $tab_key ? 'nav-tab-active' : '';
+		        $args = array ('page'=>$this->option_key, 'tab'=>$tab_key);
+		        $option_url = $page . '?' . http_build_query($args);
+		        echo '<a class="nav-tab ' . $active . '" href="'. $option_url . '">' . $tab['name'] . '</a>';
+		    }
+		    echo '</h2>';			
 		}
 
 		public function validate_field ( $field_value = '', $validator = '' ) {
