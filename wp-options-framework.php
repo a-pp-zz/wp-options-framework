@@ -89,8 +89,11 @@ if ( !class_exists ('WP_Options_Framework') ) {
 	    	  wp_enqueue_script('wp-color-picker');          
 	    	  wp_enqueue_style('wp-color-picker');		
 
-			  wp_enqueue_script('maskedinput', plugins_url( 'js/jquery.maskedinput.min.js', __FILE__ ), array ('jquery') );
-			  wp_enqueue_script('maskedinput-handler', plugins_url( 'js/maskedinput.handler.js', __FILE__ ), array ('jquery', 'maskedinput') );
+	    	  $assets_dir = dirname (__FILE__) . '/assets/';
+	    	  $assets_url = get_bloginfo('url') . '/' . str_replace (ABSPATH, '', $assets_dir);
+
+			  wp_enqueue_script('maskedinput', $assets_url . 'jquery.maskedinput.min.js', array ('jquery') );
+			  wp_enqueue_script('maskedinput-handler', $assets_url . 'maskedinput.handler.js', array ('jquery', 'maskedinput') );
 		}		
 
 	    public function admin_notices() {
@@ -407,14 +410,18 @@ if ( !class_exists ('WP_Options_Framework') ) {
 				return $date;
 		}
 
-		public static function Get ( $option, $option_key  ) {
-			
-			$options = get_option( $option_key );			
-			if ( isset( $options[$option] ) )
-				return $options[$option];
-			else
-				return false;
-
+		public static function Get ( $option_path, $option_key ) {    
+		    if ( !$option_path )
+		        return NULL;
+		    $array = get_option( $option_key );
+		    $segments = explode('.', $option_path);
+		    $cur = &$array;
+		    foreach ($segments as $segment) {
+		        if ( !isset ($cur[$segment]) )
+		            return NULL;
+		        $cur = $cur[$segment];
+		    }
+		    return $cur;
 		}	
 
 		public static function GetAll ( $option_key ) {			
