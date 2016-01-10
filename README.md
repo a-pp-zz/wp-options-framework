@@ -24,4 +24,29 @@ if ( defined ('WOF') ) {
 $wof = new \WP_Options_Framework ( 'Sample Plugin', 'sample_page', 'options-general.php', FALSE, FALSE );
 $wof->addTab ( 'Main options', 'global', array ('player_options'=>'Define player options', 'api_options'=>'RM API') );
 $wof->addTab ( 'Searh options', 'search', array ('sphinxql_options'=>'Setup SphinxQL') );
+
+$wof->addFields ( 'global', array (
+array (
+	'fid'         => 'width',
+	'title'       => 'Player width',
+	'type'        => 'text',
+	'section'     => 'player_options',
+	'std'         => 620,
+	'validator'   => 'intval',
+	'class'       => NULL,
+	'desc'        => 'Player width by default',
+),
+array (
+	'fid'         => 'height',
+	'title'       => 'Player height',
+	'type'        => 'text',
+	'section'     => 'player_options',
+	'std'         => 465,
+	'validator'   => 'intval',
+	'class'       => NULL,
+	'desc'        => 'Player height by default',
+)
+));
+
+}
 ```
