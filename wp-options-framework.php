@@ -18,6 +18,7 @@ if ( !class_exists ('WP_Options_Framework') ) {
 		private $flush_cache;
 		private $show_messages;
 		private $init = FALSE;
+		private $wp_version;
 
 		public $page_name;
 		
@@ -28,17 +29,30 @@ if ( !class_exists ('WP_Options_Framework') ) {
 			$show_messages = FALSE,
 			$flush_cache   = FALSE
 									) {
-			
 			$this->option_key    = $option_key;			
 			$this->title         = $title;
 			$this->page_name     = $page_name;
 			$this->show_messages = $show_messages;
-			$this->flush_cache   = $flush_cache;				
+			$this->flush_cache   = $flush_cache;	
+			$this->wp_version    = $this->get_wp_version(); 			
 		}
 
 		public function factory ( $title, $option_key, $page_name, $show_messages, $flush_cache ) {
 			return new WP_Options_Framework ( $title, $option_key, $page_name, $show_messages, $flush_cache );
 		}
+
+		public function get_wp_version() {
+			$versionStr = file_get_contents ( ABSPATH . '/wp-includes/version.php' );
+			$regex = "wp_version.*'(?<wpVersion>.*)'";
+			if ( preg_match('#'.$regex.'#iu', $versionStr, $matches) ) {
+			 	$ver_str = $matches['wpVersion'];
+			 	if ( strpos ($ver_str, '.') )
+			 		return explode ('.', $ver_str);
+			 	else
+			 		return array ($ver_str, 0, 0);
+			}
+			return array (0, 0, 0);
+		}	
 
 		public function init () {
 			if ( empty ($this->tabs) || empty ($this->fields) )
@@ -218,7 +232,10 @@ if ( !class_exists ('WP_Options_Framework') ) {
 				break;
 				
 				case 'textarea':
-					echo '<textarea class="' . $field_class . '" id="' . $id . '" name="'.$option.'[' .$section. '][' . $id . ']" placeholder="' . $std . '" rows="5" cols="30">' . wp_htmledit_pre( $options[$section][$id] ) . '</textarea>';
+					$html_esc_func = 'wp_htmledit_pre';
+					if ( $this->wp_version[0] >= 4 AND $this->wp_version[1] >= 3 )
+						$html_esc_func = 'format_for_editor';
+					echo '<textarea class="' . $field_class . '" id="' . $id . '" name="'.$option.'[' .$section. '][' . $id . ']" placeholder="' . $std . '" rows="5" cols="30">' . call_user_func( $html_esc_func, $options[$section][$id] ) . '</textarea>';
 					
 					if ( $desc != '' )
 						echo '<p class="description">' . $desc . '</p>';
