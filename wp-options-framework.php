@@ -1,12 +1,4 @@
 <?php
-/*
-  Plugin Name: WP Options Framework
-  Description: Service package which help implementation The Setting API of Wordpress
-  Author: CoolSwitcher
-  Version: 2.6
-  License: GPL
-*/
-
 /**
  * 
  * @package WP_Options_Framework
@@ -30,11 +22,11 @@ if ( !class_exists ('WP_Options_Framework') ) {
 		public $page_name;
 		
 		public function __construct ( 
-										$title         = 'My Options Page',
-										$option_key    = 'my_options',
-										$page_name     = NULL,
-										$show_messages = FALSE,
-										$flush_cache   = FALSE
+			$title         = 'My Options Page',
+			$option_key    = 'my_options',
+			$page_name     = NULL,
+			$show_messages = FALSE,
+			$flush_cache   = FALSE
 									) {
 			
 			$this->option_key    = $option_key;			
@@ -297,7 +289,7 @@ if ( !class_exists ('WP_Options_Framework') ) {
 			$option = $this->option_key . '_' . $tab;
 			$default_fields = array();			
 			foreach ( $this->fields[$tab] as $id => $setting ) {
-					$default_fields[$setting['section']][$setting['fid']] = $setting['std'];
+				$default_fields[$setting['section']][$setting['fid']] = $setting['std'];
 			}
 			update_option( $option, $default_fields );			
 		}
@@ -360,7 +352,6 @@ if ( !class_exists ('WP_Options_Framework') ) {
 			}
 
 			return $field_value;
-
 		}
 
 		public function validate_fields ( $input ) {
@@ -438,24 +429,26 @@ if ( !class_exists ('WP_Options_Framework') ) {
 				$this->fields[$tab] = $fields;
 		}		
 
-		#######################
-		#           	      #
-		#	    Callbacks     #
-		#					  #					
-		#######################
+		/**
+		 * Callbacks
+		 */
 
+		/* is url */
 		public static function cb_url ( $val ) {
 			return filter_var ($val, FILTER_VALIDATE_URL) ? $val : '';
 		}	
 
+		/* is у email */
 		public static function cb_email ( $val ) {
 			return is_email ( $val ) ? $val : '';
 		}	
 
+		/* sanitize text */
 		public static function cb_text ( $val ) {
 			return sanitize_text_field( $val );
 		}		
 
+		/* check for hex color */
 		public static function cb_color ( $val ) {
 			$test = preg_match ( '/#[a-f0-9]{2}[a-f0-9]{2}[a-f0-9]{2}/iu', $val );
 			return $test ? $val : '';
