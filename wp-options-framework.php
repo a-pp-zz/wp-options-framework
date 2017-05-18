@@ -19,22 +19,25 @@ if ( !class_exists ('WP_Options_Framework') ) {
 		private $show_messages;
 		private $init = FALSE;
 		private $wp_version;
+		private $cap = 'manage_options';
 
 		public $page_name;
 		
 		public function __construct ( 
-			$title         = 'My Options Page',
-			$option_key    = 'my_options',
-			$page_name     = NULL,
-			$show_messages = FALSE,
-			$flush_cache   = FALSE
-									) {
+				$title         = 'My Options Page',
+				$option_key    = 'my_options',
+				$page_name     = NULL,
+				$show_messages = FALSE,
+				$flush_cache   = FALSE,
+				$cap           = 'manage_options'
+			) {
 			$this->option_key    = $option_key;			
 			$this->title         = $title;
 			$this->page_name     = $page_name;
 			$this->show_messages = $show_messages;
 			$this->flush_cache   = $flush_cache;	
-			$this->wp_version    = $this->get_wp_version(); 			
+			$this->wp_version    = $this->get_wp_version(); 	
+			$this->cap = $cap;		
 		}
 
 		public function factory ( $title, $option_key, $page_name, $show_messages, $flush_cache ) {
@@ -61,7 +64,7 @@ if ( !class_exists ('WP_Options_Framework') ) {
 			add_action( 'admin_init', array( &$this, 'register_fields' ) );		
 			add_action( 'admin_enqueue_scripts', array(&$this, 'admin_enqueue_scripts') );				
 			if ( !empty ($this->page_name) )
-				add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
+				add_action( 'admin_menu', array( &$this, 'admin_menu' ) , 99999 );
 
 			if ( $this->show_messages )
 				add_action( 'admin_notices', array(&$this, 'admin_notices') );						
@@ -82,7 +85,7 @@ if ( !class_exists ('WP_Options_Framework') ) {
 		
 		public function admin_menu () {
 			if ( !empty ($this->page_name) ) {
-				add_submenu_page ( $this->page_name, $this->title, $this->title, 'manage_options', $this->option_key, array (&$this, 'display_page') ); 		
+				add_submenu_page ( $this->page_name, $this->title, $this->title, $this->cap, $this->option_key, array (&$this, 'display_page') ); 		
 			}
 		}
 
@@ -345,15 +348,18 @@ if ( !class_exists ('WP_Options_Framework') ) {
 		    $current_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : $this->get_first_tab();
 		    $page = !empty ($this->page_name) ? $this->page_name : '';
 
+		    
 		    echo '<h2>' . $this->title . '</h2>';
-		    echo '<h2 class="nav-tab-wrapper">';
-		    foreach ( $this->tabs as $tab_key => $tab ) {
-		        $active = $current_tab == $tab_key ? 'nav-tab-active' : '';
-		        $args = array ('page'=>$this->option_key, 'tab'=>$tab_key);
-		        $option_url = $page . '?' . http_build_query($args);
-		        echo '<a class="nav-tab ' . $active . '" href="'. $option_url . '">' . $tab['name'] . '</a>';
-		    }
-		    echo '</h2>';			
+		    if (sizeof($this->tabs) > 1):
+			    echo '<h2 class="nav-tab-wrapper">';
+			    foreach ( $this->tabs as $tab_key => $tab ) {
+			        $active = $current_tab == $tab_key ? 'nav-tab-active' : '';
+			        $args = array ('page'=>$this->option_key, 'tab'=>$tab_key);
+			        $option_url = $page . '?' . http_build_query($args);
+			        echo '<a class="nav-tab ' . $active . '" href="'. $option_url . '">' . $tab['name'] . '</a>';
+			    }
+			    echo '</h2>';			
+		    endif;
 		}
 
 		public function validate_field ( $field_value = '', $validator = '' ) {
