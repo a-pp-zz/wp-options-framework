@@ -1,0 +1,26 @@
+{
+    "name": "appzz/wof",
+    "description": "wp options framework for generation setup pages",
+    "type": "library",
+    "keywords": [
+        "wp options",
+        "wordpress"
+    ],
+    "homepage": "https://github.com/a-pp-zz/wp-options-framework",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "CoolSwitcher",
+            "email": "ds@appzz.pw",
+            "role": "lead"
+        }
+    ],
+    "require": {
+        "php": ">=5.3",
+        "wordpress": ">=4.3",
+        "appzz/arr": "1.*"
+    },
+    "autoload": {
+        "psr-4": {"AppZz\\Wp\\Options\\": "src/"}
+    }
+}
