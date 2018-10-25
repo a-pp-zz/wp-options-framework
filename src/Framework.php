@@ -49,7 +49,7 @@ class Framework {
 				$this->_menu_title = $this->_title;
 			}
 
-			if (empty($this->_page_name == 'options-general.php')) {
+			if ($this->_page_name == 'options-general.php') {
 				$this->_admin_notices = false;
 			}
 
