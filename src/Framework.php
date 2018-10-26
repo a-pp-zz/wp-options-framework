@@ -25,6 +25,8 @@ class Framework {
 	private $_datepicker;
 	private $_mediaupload;
 
+	const VERSION = '2.0.3';
+
 	public function __construct (array $params = array ()) {
 
 		$wp_version = $this->_getWpVersion();
@@ -129,6 +131,11 @@ class Framework {
  			.wp-options-framework label {
  				margin-right: 10px;
  			}
+
+ 			.wp-options-framework-copyright {
+ 				font-style: italic;
+ 				font-weight: bold;
+ 			}
  		</style>
  		<script type="text/javascript">
 			jQuery(document).ready(function($) {
@@ -188,6 +195,7 @@ class Framework {
 		submit_button();
 
 		echo '</form></div>';
+		echo '<p class="wp-options-framework-copyright"><small>Powered by WP Options Framework v'.Framework::VERSION.'</small></p>';
 	}
 
 	public function displayFields ($args = array())
