@@ -18,20 +18,25 @@ class Framework {
 	private $_menu_title;
 	private $_option_key;
 	private $_admin_notices;
-	private $_cap  = 'manage_options';
+	private $_cap;
 	private $_page_name;
+
+	private $_colorpicker;
+	private $_datepicker;
+	private $_mediaupload;
+
+	const VERSION = '2.0.3';
 
 	public function __construct (array $params = array ()) {
 
-		$wp_version = $this->_get_wp_version();
+		$wp_version = $this->_getWpVersion();
 
 		if ($wp_version[0] >= 4 AND $wp_version[0] >= 3) {
 
 			$default = array (
 				'title'         => 'My Options Page',
-				'menu_title'    => 'My Menu Page',
 				'option_key'    => 'my_options',
-				'page_name'     => null,
+				'page_name'     => 'options-general.php',
 				'admin_notices' => false,
 				'cap'           => 'manage_options'
 			);
@@ -42,7 +47,13 @@ class Framework {
 				$this->{'_'.$key} = $value;
 			}
 
-			$this->_init();
+			if (empty($this->_menu_title)) {
+				$this->_menu_title = $this->_title;
+			}
+
+			if ($this->_page_name == 'options-general.php') {
+				$this->_admin_notices = false;
+			}
 
 		} else {
 			wp_die ('Minimal supported version of Wordpress are 4.3, old versions not supported!');
@@ -54,63 +65,127 @@ class Framework {
 		return new Framework ($params);
 	}
 
-	public function admin_menu ()
+	public function Init ()
 	{
-		add_submenu_page ($this->_page_name, $this->_title, $this->_menu_title, $this->_cap, $this->_option_key, array (&$this, 'display_page') );
+		if (empty ($this->_tabs) OR empty ($this->_fields)) {
+			return false;
+		}
+
+		$this->_init = true;
+		add_action('admin_init', array( &$this, 'registerFields'));
+		add_action('admin_enqueue_scripts', array(&$this, 'addScripts'));
+		add_action('admin_footer', array(&$this, 'renderJS'), 9999);
+
+		if ( ! empty ($this->_page_name)) {
+			add_action('admin_menu', array(&$this, 'setMenu'), 9999);
+		}
+
+		if ($this->_admin_notices) {
+			add_action('admin_notices', array(&$this, 'setNotices'));
+		}
+
+		foreach ($this->_tabs as $tab_id=>$tab) {
+			$option = $this->_option_key . '_' . $tab_id;
+
+			if ( ! get_option( $option ) ) {
+				add_option ($option);
+			}
+		}
 	}
 
-  	public function admin_enqueue_scripts ()
+	public function setMenu ()
+	{
+		add_submenu_page ($this->_page_name, $this->_title, $this->_menu_title, $this->_cap, $this->_option_key, array (&$this, 'renderPage') );
+	}
+
+  	public function addScripts ()
   	{
 		wp_enqueue_script('jquery');
-		wp_enqueue_script('media-upload');
-		wp_enqueue_script('thickbox');
-		wp_enqueue_style('thickbox');
 
-		wp_enqueue_script('wp-color-picker');
-		wp_enqueue_style('wp-color-picker');
+		if ($this->_mediaupload) {
+			wp_enqueue_script('media-upload');
+			wp_enqueue_script('thickbox');
+			wp_enqueue_style('thickbox');
+		}
+
+		if ($this->_colorpicker) {
+			wp_enqueue_script('wp-color-picker');
+			wp_enqueue_style('wp-color-picker');
+		}
+
+		if ($this->_datepicker) {
+			wp_enqueue_script('jquery-ui-datepicker');
+			wp_enqueue_style('jqueryui', 'https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css', false, null );
+		}
 	}
 
-    public function admin_notices ()
+    public function setNotices ()
     {
       	settings_errors ();
   	}
 
-  	public function js_handlers ()
+  	public function renderJS ()
   	{
  		echo '
+ 		<style type="text/css">
+ 			.wp-options-framework label {
+ 				margin-right: 10px;
+ 			}
+
+ 			.wp-options-framework-copyright {
+ 				font-style: italic;
+ 				font-weight: bold;
+ 			}
+ 		</style>
  		<script type="text/javascript">
 			jQuery(document).ready(function($) {
-				$(\'.wp-options-framework .wp-color-picker\').wpColorPicker();
-			});
 
-			$(\'.wp-options-framework input[data-wpsw-browse="1"]\').each(function() {
-				tb_show("", "media-upload.php?post_id=0&amp;type=file&amp;TB_iframe=true");
-				window.original_send_to_editor = window.send_to_editor;
+				if ($.isFunction($.fn.wpColorPicker)) {
+					$(\'.wp-options-framework .wp-color-picker\').wpColorPicker();
+				}
 
-            	window.send_to_editor = function(html) {
-						$(html).filter("a").each( function(k, v){
-						   $(this).val($(v).attr("href"));
-						});
-            		tb_remove();
-            		window.send_to_editor = window.original_send_to_editor;
-            	};
-    			return false;
+				if ($.isFunction($.fn.datepicker)) {
+					$(\'.wp-options-framework .wp-date-picker\').datepicker({ dateFormat: \'yy-mm-dd\' });
+				}
+
+				$(\'.wp-options-framework .wpsf-browse\').click(function() {
+				    var receiver = $(this).prev("input");
+				    tb_show("", "media-upload.php?post_id=0&amp;type=file&amp;TB_iframe=true");
+
+				    window.original_send_to_editor = window.send_to_editor;
+
+				    window.send_to_editor = function(html) {
+
+			            $(html).filter("a").each( function(k, v) {
+			                $(receiver).val($(v).attr("href"));
+			            });
+
+			            $(html).filter("img").each( function(k, v) {
+			                $(receiver).val($(v).attr("src"));
+			            });
+
+				        tb_remove();
+				        window.send_to_editor = window.original_send_to_editor;
+				    }
+
+				    return false;
+				});
 			});
 		</script>
 		';
   	}
 
-	public function display_page()
+	public function renderPage ()
 	{
 		if ( ! $this->_init) {
 			return false;
 		}
 
-		$tab = ! empty ($_GET['tab']) ? $_GET['tab'] : $this->_get_first_tab();
-		$option = $this->option_key . '_' . $tab;
+		$tab = Arr::get ($_GET, 'tab', $this->_getFirstTab());
+		$option = $this->_getOptionKey($tab);
 
 		echo '<div class="wrap wp-options-framework">';
-		$this->_render_tabs();
+		$this->_renderTabs();
 
 		echo '<form action="options.php" method="post">';
 
@@ -120,15 +195,14 @@ class Framework {
 		submit_button();
 
 		echo '</form></div>';
-
-		$option = $this->option_key . '_' . $tab;
+		echo '<p class="wp-options-framework-copyright"><small>Powered by WP Options Framework v'.Framework::VERSION.'</small></p>';
 	}
 
-	public function display_fields ($args = array())
+	public function displayFields ($args = array())
 	{
 		extract( $args );
-		$option  = $this->option_key . '_' . $tab;
-		$options = get_option($option);
+		$option  = $this->_option_key . '_' . $tab;
+		$options = (array)get_option($option, array());
 
 		if ( ! isset($options[$id] ) AND $type != 'checkbox') {
 			$options[$id] = $std;
@@ -169,12 +243,7 @@ class Framework {
 			case 'radio':
 				$i = 0;
 				foreach ($choices as $value => $label) :
-					echo '<input class="radio' . $field_class . '" type="radio" name="' . $option_name . '" id="' . $id . $i . '" value="' . esc_attr( $value ) . '" ' . checked($option_val, $value, false) . '> <label for="' . $id . $i . '">' . $label . '</label>';
-
-					if ($i < count( $choices ) - 1) {
-						echo '<br />';
-					}
-
+					echo '<label><input class="radio' . $field_class . '" type="radio" name="' . $option_name . '" id="' . $id . $i . '" value="' . esc_attr( $value ) . '" ' . checked($option_val, $value, false) . '>' . $label . '</label>';
 					$i++;
 				endforeach;
 
@@ -213,7 +282,11 @@ class Framework {
         	break;
 
 			case 'color':
-		 		echo '<input class="regular-text wp-color-picker' . $field_class . '" type="text" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr( $options[$section][$id] ) . '" />';
+		 		echo '<input class="regular-text wp-color-picker' . $field_class . '" type="text" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr( $option_val ) . '" />';
+		 	break;
+
+			case 'date':
+		 		echo '<input class="regular-text wp-date-picker' . $field_class . '" type="text" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr( $option_val ) . '" />';
 		 	break;
 
 			case 'text':
@@ -227,12 +300,12 @@ class Framework {
 		}
 	}
 
-	public function register_fields()
+	public function registerFields ()
 	{
 		foreach ($this->_tabs as $tab_id=>$tab)
 		{
-			$option = $this->_option_key . '_' . $tab_id;
-			register_setting($option, $option, array ( &$this, 'validate_fields'));
+			$option = $this->_getOptionKey($tab_id);
+			register_setting($option, $option, array ( &$this, 'validateFields'));
 
 			if ( isset ($tab['sections'] ) && is_array ( $tab['sections'] ) ) {
 				foreach ($tab['sections'] as $slug => $title ) {
@@ -241,56 +314,40 @@ class Framework {
 			}
 
 			if (isset ($this->_fields[$tab_id] ) && is_array ( $this->_fields[$tab_id] ) ) {
-				foreach ($this->fields[$tab_id] as $id => $setting) {
+				foreach ($this->_fields[$tab_id] as $id => $setting) {
 					$setting['id'] = $id;
-					$this->_create_setting ($setting, $tab_id);
+					$this->_createField ($setting, $tab_id);
 				}
 			}
 		}
 	}
 
-	public function validate_field ($field_value = '', $validator = '')
-	{
-		if (is_array ($validator)
-					&& isset ($validator[0])
-					&& isset ($validator[1])
-					&& method_exists ( $validator[0], $validator[1] ) ) {
-
-					$field_value = call_user_func ( $validator, $field_value);
-		}
-		elseif (is_string ($validator) && ! empty ($validator) && method_exists ('Validation', $validator) ) {
-			$field_value = call_user_func (array ('Validation', $validator), $field_value);
-		}
-
-		return $field_value;
-	}
-
-	public function validate_fields ($input)
+	public function validateFields ($input)
 	{
 		$option = Arr::get ($_POST, 'option_page', '');
 
 		if ( ! empty ($option)) {
 
-			$tab = str_replace ($this->option_key . '_', '', $option);
+			$tab = str_replace ($this->_option_key . '_', '', $option);
 
-			if ( isset ($this->fields[$tab]) ) {
+			if ( ! empty ($this->_fields[$tab])) {
 
-				foreach ($this->fields[$tab] as $id=>$setting) {
+				foreach ($this->_fields[$tab] as $id=>$setting) {
 
-					$options = get_option ($option);
-					$section = Arr::get ($setting, 'section');
-					$fid = Arr::get ($setting, 'fid');
-					$field_value = Arr::path ($setting, $section.'.'.$fid);
-					$validator = Arr::path ($setting, 'validator');
-					$type = Arr::path ($setting, 'type');
+					$options     = get_option ($option);
+					$section     = Arr::get ($setting, 'section');
+					$fid         = Arr::get ($setting, 'fid');
+					$field_value = Arr::path ($input, $section.'.'.$fid);
+					$validator   = Arr::path ($setting, 'validator');
+					$type        = Arr::path ($setting, 'type');
 
 					if (is_array ($field_value)) {
 						foreach ( $field_value as $k=>&$v) {
-							$v = $this->validate_field ($v, $validator);
+							$v = $this->_validateField ($v, $validator);
 						}
 					}
 					else {
-						$field_value = $this->validate_field ($field_value, $validator);
+						$field_value = $this->_validateField ($field_value, $validator);
 					}
 
 					if ($type == 'checkbox' && ! $field_value) {
@@ -305,36 +362,54 @@ class Framework {
 		return $input;
 	}
 
-	public function add_tab ($name = 'Options', $slug = 'options', array $sections = array ())
+	public function addTab (Tab $tab)
 	{
-		if ( ! array_key_exists($slug, $this->_tabs)) {
-			$this->_tabs[$slug] = array ('name'=>$name, 'sections'=>$sections);
+		if ( ! array_key_exists($tab->slug, $this->_tabs)) {
+			$this->_tabs[$tab->slug] = array ('name'=>$tab->name, 'sections'=>$tab->sections);
+			$this->_addFields ($tab->slug, $tab->fields);
 		}
 	}
 
-	public function add_fields ($tab, array $fields)
+	public static function Get ($section = NULL, $option_key, $default = NULL)
 	{
-		if (array_key_exists($tab, $this->_tabs)) {
-			$this->_fields[$tab] = $fields;
-		}
+	    if (empty ($option_key)) {
+	        return false;
+	    }
+
+	    $ret = get_option ($option_key, $default);
+
+	    if ($section) {
+	    	return Arr::path ($ret, $section, '.', $default);
+	    }
+
+	    return $ret;
 	}
 
-	public static function get_option ($option_key, $path = null, $default = array ())
+	public static function getOption ($option_key, $tab, $section = null, $option = null, $default = array ())
 	{
+		if (empty($option_key) OR empty($tab)) {
+			return false;
+		}
+
+		$option_key .= '_' . $tab;
+
 		$ret = get_option ($option_key, $default);
 
 		if ( ! $ret) {
 			return false;
 		}
 
-		if (empty($path)) {
-			return $ret;
-		} else {
-			return Arr::path ($ret, $path);
+		if ( ! empty($section)) {
+			if ( ! empty ($option)) {
+				$section .= '.' . $option;
+			}
+			return Arr::path ($ret, $section);
 		}
+
+		return $ret;
 	}
 
-	public static function flush_cache ($option_key = '', $tabs = array ())
+	public static function flushCache ($option_key = '', $tabs = array ())
 	{
 		$tabs = (array) $tabs;
 
@@ -350,7 +425,7 @@ class Framework {
 		return false;
 	}
 
-	private function _get_wp_version ()
+	private function _getWpVersion ()
 	{
 		$version_str = file_get_contents (ABSPATH . '/wp-includes/version.php');
 		$regex = "wp_version.*'(?<wp_version>.*)'";
@@ -369,36 +444,51 @@ class Framework {
 		return array (0, 0, 0);
 	}
 
-	private function _init ()
+	private function _addFields ($tab, array $fields)
 	{
-		if (empty ($this->tabs) OR empty ($this->fields)) {
-			return false;
-		}
+		if (array_key_exists($tab, $this->_tabs)) {
+			$this->_fields[$tab] = $fields;
 
-		$this->_init = true;
-		add_action('admin_init', array( &$this, 'register_fields'));
-		add_action('admin_enqueue_scripts', array(&$this, 'admin_enqueue_scripts'));
-		add_action('wp_footer', array(&$this, 'js_handlers'), 9999);
+			foreach ($fields as $f) {
+				$type = Arr::get ($f, 'type');
 
-		if ( ! empty ($this->_page_name)) {
-			add_action('admin_menu', array(&$this, 'admin_menu'), 9999);
-		}
+				switch ($type) {
+					case 'color':
+						$this->_colorpicker = true;
+					break;
 
-		if ($this->_admin_notices) {
-			add_action('admin_notices', array(&$this, 'admin_notices'));
-		}
+					case 'date':
+						$this->_datepicker = true;
+					break;
 
-		foreach ($this->_tabs as $tab_id=>$tab) {
-			$option = $this->option_key . '_' . $tab_id;
-
-			if ( ! get_option( $option ) ) {
-				add_option ($option);
-				//$this->_initialize_fields ($tab_id);
+					case 'file':
+						$this->_mediaupload = true;
+					break;
+				}
 			}
 		}
 	}
 
-	private function _create_setting ($args = array(), $tab = '')
+	private function _validateField ($field_value = '', $validator = '')
+	{
+		if (is_string ($validator) AND ! empty ($validator)) {
+
+			if (strpos ($validator, ':') !== false) {
+				list ($class, $method) = explode ('::', $validator);
+
+				if (method_exists ($class, $method)) {
+					$field_value = call_user_func (array ($class, $method), $field_value);
+				}
+			}
+			elseif (function_exists ($validator)) {
+				$field_value = call_user_func ($validator, $field_value);
+			}
+		}
+
+		return $field_value;
+	}
+
+	private function _createField ($args = array(), $tab = '')
 	{
 		$defaults = array(
 			'id'        => 'default_field',
@@ -430,36 +520,39 @@ class Framework {
 			'validator' => $validator
 		);
 
-		$option = $this->option_key . '_' . $tab;
-
-		add_settings_field ($id, $title, array( $this, 'display_fields' ), $option, $section, $field_args);
+		add_settings_field ($id, $title, array( $this, 'displayFields' ), $this->_getOptionKey ($tab), $section, $field_args);
 	}
 
-	private function _get_first_tab ()
+	private function _getFirstTab ()
 	{
-		if ( ! $this->init) {
+		if ( ! $this->_init) {
 			return false;
 		}
 
-		$ret = array_shift ((array_keys ($this->_fields)));
-		return $ret;
+		$keys = array_keys ($this->_fields);
+		return array_shift ($keys);
 	}
 
-	private function _render_tabs ()
+	private function _getOptionKey ($tab_id)
 	{
-		if ( ! $this->init) {
+		return $this->_option_key . '_' . $tab_id;
+	}
+
+	private function _renderTabs ()
+	{
+		if ( ! $this->_init) {
 			return false;
 		}
 
-	    $current_tab = ! empty ($_GET['tab']) ? $_GET['tab'] : $this->_get_first_tab();
+	    $current_tab = ! empty ($_GET['tab']) ? $_GET['tab'] : $this->_getFirstTab();
 	    $page = ! empty ($this->_page_name) ? $this->_page_name : '';
 
 	    echo '<h2>' . $this->_title . '</h2>';
 
-	    if (count($this->tabs) > 1):
+	    if (count($this->_tabs) > 1):
 		    echo '<h2 class="nav-tab-wrapper">';
 
-		    foreach ($this->tabs as $tab_key => $tab ) :
+		    foreach ($this->_tabs as $tab_key => $tab ) :
 		        $active = $current_tab == $tab_key ? 'nav-tab-active' : '';
 		        $args = array ('page'=>$this->_option_key, 'tab'=>$tab_key);
 		        $option_url = $page . '?' . http_build_query($args);
@@ -468,18 +561,5 @@ class Framework {
 
 		    echo '</h2>';
 	    endif;
-	}
-
-	private function _initialize_fields ($tab = '')
-	{
-		$option = $this->option_key . '_' . $tab;
-		$default_fields = array();
-
-		foreach ($this->_fields[$tab] as $id => $setting)
-		{
-			$default_fields[$setting['section']][$setting['fid']] = $setting['std'];
-		}
-
-		update_option ($option, $default_fields);
 	}
 }

@@ -16,7 +16,7 @@ class Validation {
         return filter_var ($val, FILTER_VALIDATE_URL) ? $val : '';
     }
 
-    /* is у email */
+    /* is email */
     public static function email ($val)
     {
         return is_email ($val) ? $val : '';
@@ -32,5 +32,11 @@ class Validation {
     public static function color ($val)
     {
         return preg_match ('/#[a-f0-9]{2}[a-f0-9]{2}[a-f0-9]{2}/iu', $val) ? $val : '';
+    }
+
+    /* check date */
+    public static function date ($val)
+    {
+        return preg_match ('#\d{4}\-\d{2}\-\d{2}#iu', $val) ? $val : '';
     }
 }
