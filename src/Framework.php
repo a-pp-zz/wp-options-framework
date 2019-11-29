@@ -273,7 +273,7 @@ class Framework {
 			break;
 
 	        case 'editor':
-	        	wp_editor($options[$section][$id], $id, array('textarea_name' => $option_name));
+	        	wp_editor(Arr::path($options, $section . '.' . $id), $id, array('textarea_name' => $option_name));
 	        break;
 
 		    case 'file':
