@@ -25,7 +25,7 @@ class Framework {
 	private $_datepicker;
 	private $_mediaupload;
 
-	const VERSION = '2.0.3';
+	const VERSION = '2.0.5';
 
 	public function __construct (array $params = array ()) {
 
@@ -278,7 +278,7 @@ class Framework {
 
 		    case 'file':
 		        echo '<input type="text" name="' . $option_name . '" id="'. $id .'" value="'. esc_attr ($option_val) .'" class="regular-text'. $class .'" /> ';
-            echo '<input type="button" data-wpsw-browse="1" class="button wpsf-browse" value="'.__('Browse').'" />';
+            echo '<input type="button" data-wpsw-browse="1" class="button wpsf-browse" value="Выбрать файл" />';
         	break;
 
 			case 'color':
@@ -368,6 +368,26 @@ class Framework {
 			$this->_tabs[$tab->slug] = array ('name'=>$tab->name, 'sections'=>$tab->sections);
 			$this->_addFields ($tab->slug, $tab->fields);
 		}
+	}
+
+	public function getAll ($path = NULL)
+	{
+		$ret = array ();
+
+		if ( ! empty ($this->_tabs)) {
+			$tabs = array_keys ($this->_tabs);
+
+			foreach ($tabs as $tab) {
+				$option_key = $this->_option_key . '_' . $tab;
+				$ret[$tab] = get_option ($option_key);
+			}
+		}
+
+		if ( ! empty ($ret) AND ! empty ($path)) {
+			$ret = Arr::path ($ret, $path);
+		}
+
+		return $ret;
 	}
 
 	public static function Get ($section = NULL, $option_key, $default = NULL)
