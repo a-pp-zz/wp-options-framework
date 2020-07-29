@@ -265,7 +265,7 @@ class Framework {
 
 			case 'textarea':
 				$html_esc_func = 'format_for_editor';
-				echo '<textarea class="' . $field_class . '" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" rows="5" cols="30">' . call_user_func($html_esc_func, $option_val) . '</textarea>';
+				echo '<textarea class="' . $field_class . '" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" rows="6" cols="46">' . call_user_func($html_esc_func, $option_val) . '</textarea>';
 			break;
 
 			case 'password':
