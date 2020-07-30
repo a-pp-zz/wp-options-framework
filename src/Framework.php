@@ -25,7 +25,7 @@ class Framework {
 	private $_datepicker;
 	private $_mediaupload;
 
-	const VERSION = '2.0.5';
+	const VERSION = '2.0.7';
 
 	public function __construct (array $params = array ()) {
 
@@ -72,6 +72,7 @@ class Framework {
 		}
 
 		$this->_init = true;
+
 		add_action('admin_init', array( &$this, 'registerFields'));
 		add_action('admin_enqueue_scripts', array(&$this, 'addScripts'));
 		add_action('admin_footer', array(&$this, 'renderJS'), 9999);
@@ -305,6 +306,12 @@ class Framework {
 		foreach ($this->_tabs as $tab_id=>$tab)
 		{
 			$option = $this->_getOptionKey($tab_id);
+			$cap = $this->_cap;
+
+			add_filter ('option_page_capability_' . $option, function ($capability) use ($cap) {
+			    return $cap;
+			});
+
 			register_setting($option, $option, array ( &$this, 'validateFields'));
 
 			if ( isset ($tab['sections'] ) && is_array ( $tab['sections'] ) ) {
