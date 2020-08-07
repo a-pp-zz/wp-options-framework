@@ -37,6 +37,14 @@ class Validation {
     /* check date */
     public static function date ($val)
     {
-        return preg_match ('#\d{4}\-\d{2}\-\d{2}#iu', $val) ? $val : '';
+        if (preg_match ('#^(?<yy>\d{4})\-(?<mm>\d{2})\-(?<dd>\d{2})\s?(?<time>\d{2}\:\d{2}\:\d{2})?$#iu', $val, $parts)) {
+            $mm = sprintf ('%01d', $parts['mm']);
+            $dd = sprintf ('%01d', $parts['dd']);
+            $yy = sprintf ('%04d', $parts['yy']);
+
+            return checkdate ($mm, $dd, $yy) ? $val : '';
+        }
+
+        return '';
     }
 }
