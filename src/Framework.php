@@ -17,17 +17,22 @@ class Framework {
 	private $_title;
 	private $_menu_title;
 	private $_option_key;
-	private $_admin_notices;
+	private $_admin_notices = true;
 	private $_cap;
 	private $_page_name;
+	private $_transient_key;
 
 	private $_colorpicker;
 	private $_datepicker;
 	private $_mediaupload;
 
-	const VERSION = '2.0.7';
+	private $_version = '2.0.10';
 
 	public function __construct (array $params = array ()) {
+
+		if ( ! defined('WP_PROD_READY') OR ! WP_PROD_READY) {
+			$this->_version .= '-dev-' . mt_rand (1000, 99999);
+		}
 
 		$wp_version = $this->_getWpVersion();
 
@@ -37,7 +42,7 @@ class Framework {
 				'title'         => 'My Options Page',
 				'option_key'    => 'my_options',
 				'page_name'     => 'options-general.php',
-				'admin_notices' => false,
+				'admin_notices' => true,
 				'cap'           => 'manage_options'
 			);
 
@@ -53,16 +58,27 @@ class Framework {
 
 			if ($this->_page_name == 'options-general.php') {
 				$this->_admin_notices = false;
+			} else {
+				$this->_admin_notices = true;
 			}
 
 		} else {
 			wp_die ('Minimal supported version of Wordpress are 4.3, old versions not supported!');
 		}
+
+		add_action ('updated_option', array (&$this, 'updatedOption'), 9999, 1);
 	}
 
 	public function factory (array $params = array ())
 	{
 		return new Framework ($params);
+	}
+
+	public function updatedOption ($option)
+	{
+		if (strpos ($option, $this->_option_key) !== false) :
+			$this->setTransient ('Настройки обновлены');
+		endif;
 	}
 
 	public function Init ()
@@ -74,15 +90,13 @@ class Framework {
 		$this->_init = true;
 
 		add_action('admin_init', array( &$this, 'registerFields'));
-		add_action('admin_enqueue_scripts', array(&$this, 'addScripts'));
-		add_action('admin_footer', array(&$this, 'renderJS'), 9999);
 
 		if ( ! empty ($this->_page_name)) {
 			add_action('admin_menu', array(&$this, 'setMenu'), 9999);
 		}
 
 		if ($this->_admin_notices) {
-			add_action('admin_notices', array(&$this, 'setNotices'));
+			add_action('admin_notices', array($this, 'showNotices'));
 		}
 
 		foreach ($this->_tabs as $tab_id=>$tab) {
@@ -96,7 +110,8 @@ class Framework {
 
 	public function setMenu ()
 	{
-		add_submenu_page ($this->_page_name, $this->_title, $this->_menu_title, $this->_cap, $this->_option_key, array (&$this, 'renderPage') );
+		$p = add_submenu_page ($this->_page_name, $this->_title, $this->_menu_title, $this->_cap, $this->_option_key, array (&$this, 'renderPage') );
+		add_action ("load-{$p}", array ($this, 'addScripts'));
 	}
 
   	public function addScripts ()
@@ -115,66 +130,42 @@ class Framework {
 		}
 
 		if ($this->_datepicker) {
-			wp_enqueue_script('jquery-ui-datepicker');
-			wp_enqueue_style('jqueryui', 'https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css', false, null );
+			$assets_dir = dirname (__DIR__);
+			$assets_dir = str_replace (ABSPATH, '', $assets_dir);
+			$assets_dir = home_url ($assets_dir);
+			wp_enqueue_script('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.full.min.js', array('jquery'), $this->_version);
+			wp_enqueue_script('wof', $assets_dir . '/assets/wof.js', array('jquery', 'wof-datetimepicker'), $this->_version);
+			wp_enqueue_style('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.min.css', $this->_version);
+			wp_enqueue_style('wof', $assets_dir . '/assets/wof.css', $this->_version);
 		}
 	}
 
-    public function setNotices ()
+	public function showNotices ()
+	{
+	    $class = 'notice notice-success';
+	    $message = $this->getTransient();
+
+	    if ( ! empty ($message)) :
+	    	printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), esc_html( $message ) );
+		endif;
+	}
+
+    public function setTransient ($message)
     {
-      	settings_errors ();
-  	}
+    	if (empty($this->_transient_key)) {
+    		return false;
+    	}
 
-  	public function renderJS ()
-  	{
- 		echo '
- 		<style type="text/css">
- 			.wp-options-framework label {
- 				margin-right: 10px;
- 			}
+    	set_transient ($this->_transient_key, $message, 60);
+    	return TRUE;
+    }
 
- 			.wp-options-framework-copyright {
- 				font-style: italic;
- 				font-weight: bold;
- 			}
- 		</style>
- 		<script type="text/javascript">
-			jQuery(document).ready(function($) {
-
-				if ($.isFunction($.fn.wpColorPicker)) {
-					$(\'.wp-options-framework .wp-color-picker\').wpColorPicker();
-				}
-
-				if ($.isFunction($.fn.datepicker)) {
-					$(\'.wp-options-framework .wp-date-picker\').datepicker({ dateFormat: \'yy-mm-dd\' });
-				}
-
-				$(\'.wp-options-framework .wpsf-browse\').click(function() {
-				    var receiver = $(this).prev("input");
-				    tb_show("", "media-upload.php?post_id=0&amp;type=file&amp;TB_iframe=true");
-
-				    window.original_send_to_editor = window.send_to_editor;
-
-				    window.send_to_editor = function(html) {
-
-			            $(html).filter("a").each( function(k, v) {
-			                $(receiver).val($(v).attr("href"));
-			            });
-
-			            $(html).filter("img").each( function(k, v) {
-			                $(receiver).val($(v).attr("src"));
-			            });
-
-				        tb_remove();
-				        window.send_to_editor = window.original_send_to_editor;
-				    }
-
-				    return false;
-				});
-			});
-		</script>
-		';
-  	}
+    public function getTransient ()
+    {
+    	$message = get_transient ($this->_transient_key);
+		delete_transient ($this->_transient_key);
+    	return $message;
+    }
 
 	public function renderPage ()
 	{
@@ -196,7 +187,7 @@ class Framework {
 		submit_button();
 
 		echo '</form></div>';
-		echo '<p class="wp-options-framework-copyright"><small>Powered by WP Options Framework v'.Framework::VERSION.'</small></p>';
+		echo '<p class="wp-options-framework-copyright"><small>Powered by WP Options Framework v'.$this->_version.'</small></p>';
 	}
 
 	public function displayFields ($args = array())
@@ -287,7 +278,10 @@ class Framework {
 		 	break;
 
 			case 'date':
-		 		echo '<input class="regular-text wp-date-picker' . $field_class . '" type="text" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr( $option_val ) . '" />';
+			case 'datetime':
+				$start_year = (int)Arr::get ($args, 'start_year', (current_time ('Y') - 5));
+				$end_year = (int)Arr::get ($args, 'start_year', (current_time ('Y') + 5));
+		 		echo '<input data-timepicker="'.intval ($type == 'datetime').'" data-start-year="'.esc_attr ($start_year).'" data-end-year="'.esc_attr ($end_year).'" readonly="readonly" class="regular-text wp-date-picker' . $field_class . '" type="text" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr( $option_val ) . '" />';
 		 	break;
 
 			case 'text':
@@ -303,6 +297,9 @@ class Framework {
 
 	public function registerFields ()
 	{
+		$current_user = wp_get_current_user ();
+		$this->_transient_key = 'wof-tr-message-'.$this->_option_key . '-' . $current_user->ID;
+
 		foreach ($this->_tabs as $tab_id=>$tab)
 		{
 			$option = $this->_getOptionKey($tab_id);
@@ -485,6 +482,7 @@ class Framework {
 					break;
 
 					case 'date':
+					case 'datetime':
 						$this->_datepicker = true;
 					break;
 
@@ -502,7 +500,6 @@ class Framework {
 
 			if (strpos ($validator, ':') !== false) {
 				list ($class, $method) = explode ('::', $validator);
-
 				if (method_exists ($class, $method)) {
 					$field_value = call_user_func (array ($class, $method), $field_value);
 				}
