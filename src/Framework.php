@@ -127,6 +127,7 @@ class Framework {
 		$assets_dir = dirname (__DIR__);
 		$assets_dir = str_replace (ABSPATH, '', $assets_dir);
 		$assets_dir = home_url ($assets_dir);
+		$assets_dir = preg_replace ('#^https?\:#iu', '', $assets_dir);
 		wp_enqueue_script('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.full.min.js', array('jquery'), $this->_version);
 		wp_enqueue_style('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.min.css', $this->_version);
 
