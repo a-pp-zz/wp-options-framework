@@ -22,10 +22,6 @@ class Framework {
 	private $_page_name;
 	private $_transient_key;
 
-	private $_colorpicker;
-	private $_datepicker;
-	private $_mediaupload;
-
 	private $_version = '2.0.10';
 
 	public function __construct (array $params = array ()) {
@@ -118,26 +114,32 @@ class Framework {
   	{
 		wp_enqueue_script('jquery');
 
-		if ($this->_mediaupload) {
-			wp_enqueue_script('media-upload');
-			wp_enqueue_script('thickbox');
-			wp_enqueue_style('thickbox');
-		}
+		//mediaupload
+		wp_enqueue_script('media-upload');
+		wp_enqueue_script('thickbox');
+		wp_enqueue_style('thickbox');
 
-		if ($this->_colorpicker) {
-			wp_enqueue_script('wp-color-picker');
-			wp_enqueue_style('wp-color-picker');
-		}
+		//colorpicker
+		wp_enqueue_script('wp-color-picker');
+		wp_enqueue_style('wp-color-picker');
 
-		if ($this->_datepicker) {
-			$assets_dir = dirname (__DIR__);
-			$assets_dir = str_replace (ABSPATH, '', $assets_dir);
-			$assets_dir = home_url ($assets_dir);
-			wp_enqueue_script('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.full.min.js', array('jquery'), $this->_version);
-			wp_enqueue_script('wof', $assets_dir . '/assets/wof.js', array('jquery', 'wof-datetimepicker'), $this->_version);
-			wp_enqueue_style('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.min.css', $this->_version);
-			wp_enqueue_style('wof', $assets_dir . '/assets/wof.css', $this->_version);
-		}
+		//custom datetimepicker
+		$assets_dir = dirname (__DIR__);
+		$assets_dir = str_replace (ABSPATH, '', $assets_dir);
+		$assets_dir = home_url ($assets_dir);
+		wp_enqueue_script('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.full.min.js', array('jquery'), $this->_version);
+		wp_enqueue_style('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.min.css', $this->_version);
+
+		$deps_js = array (
+			'jquery',
+			'media-upload',
+			'thickbox',
+			'wp-color-picker',
+			'wof-datetimepicker'
+		);
+
+		wp_enqueue_script('wof', $assets_dir . '/assets/wof.js', $deps_js, $this->_version);
+		wp_enqueue_style('wof', $assets_dir . '/assets/wof.css', array (), $this->_version);
 	}
 
 	public function showNotices ()
@@ -472,26 +474,9 @@ class Framework {
 	{
 		if (array_key_exists($tab, $this->_tabs)) {
 			$this->_fields[$tab] = $fields;
-
-			foreach ($fields as $f) {
-				$type = Arr::get ($f, 'type');
-
-				switch ($type) {
-					case 'color':
-						$this->_colorpicker = true;
-					break;
-
-					case 'date':
-					case 'datetime':
-						$this->_datepicker = true;
-					break;
-
-					case 'file':
-						$this->_mediaupload = true;
-					break;
-				}
-			}
 		}
+
+		return $this;
 	}
 
 	private function _validateField ($field_value = '', $validator = '')
