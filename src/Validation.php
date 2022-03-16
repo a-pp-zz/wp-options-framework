@@ -47,4 +47,22 @@ class Validation {
 
         return '';
     }
+
+    public static function datetime_local ($val)
+    {
+        if (preg_match ('#^(?<date>\d{4}\-\d{1,2}\-\d{1,2})T(?<time>\d{1,2}\:\d{1,2})$#iu', $val, $parts)) {
+            return sprintf ('%s %s:00', $parts['date'], $parts['time']);
+        }
+
+        return '';
+    }
+
+    public static function time_local ($val)
+    {
+        if (preg_match ('#^\d{1,2}\:\d{1,2}$#iu', $val)) {
+            return sprintf ('%s:00', $val);
+        }
+
+        return '';
+    }
 }

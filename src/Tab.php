@@ -29,6 +29,24 @@ class Tab {
 
     public function addField ($fid, $title, $std = '', $type = 'text', $section = 'global', array $extra = array ())
     {
+        $validator = Arr::get ($extra, 'validator');
+
+        if (empty($validator)) {
+            switch ($type) {
+                case 'datetime':
+                    $validator = '\AppZz\Wp\Options\Validation::datetime_local';
+                break;
+
+                case 'date':
+                    $validator = '\AppZz\Wp\Options\Validation::date';
+                break;
+
+                case 'time':
+                    $validator = '\AppZz\Wp\Options\Validation::time_local';
+                break;
+            }
+        }
+
         $field = array (
             'fid'       => $fid,
             'title'     => $title,
@@ -36,9 +54,10 @@ class Tab {
             'section'   => $section,
             'std'       => $std,
             'choices'   => Arr::get ($extra, 'choices'),
-            'validator' => Arr::get ($extra, 'validator'),
+            'validator' => $validator,
             'class'     => Arr::get ($extra, 'class'),
             'desc'      => Arr::get ($extra, 'desc'),
+            'attrs'     => Arr::get ($extra, 'attrs', array()),
         );
 
         $this->fields[] = $field;

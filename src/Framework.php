@@ -22,7 +22,7 @@ class Framework {
 	private $_page_name;
 	private $_transient_key;
 
-	private $_version = '2.0.10';
+	private $_version = '2.1.0';
 
 	public function __construct (array $params = array ()) {
 
@@ -123,24 +123,62 @@ class Framework {
 		wp_enqueue_script('wp-color-picker');
 		wp_enqueue_style('wp-color-picker');
 
-		//custom datetimepicker
-		$assets_dir = dirname (__DIR__);
-		$assets_dir = str_replace (ABSPATH, '', $assets_dir);
-		$assets_dir = home_url ($assets_dir);
-		$assets_dir = preg_replace ('#^https?\:#iu', '', $assets_dir);
-		wp_enqueue_script('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.full.min.js', array('jquery'), $this->_version);
-		wp_enqueue_style('wof-datetimepicker', $assets_dir . '/assets/jquery.datetimepicker.min.css', $this->_version);
+		add_action('admin_head', array ('\AppZz\Wp\Options\Framework', 'adminHeader'));
+		add_action('admin_footer', array ('\AppZz\Wp\Options\Framework', 'adminFooter'));
+	}
 
-		$deps_js = array (
-			'jquery',
-			'media-upload',
-			'thickbox',
-			'wp-color-picker',
-			'wof-datetimepicker'
-		);
+	public static function adminHeader ()
+	{
+		echo '<!-- WOF Custom CSS -->', "\n";
 
-		wp_enqueue_script('wof', $assets_dir . '/assets/wof.js', $deps_js, $this->_version);
-		wp_enqueue_style('wof', $assets_dir . '/assets/wof.css', array (), $this->_version);
+		echo '<style type="text/css">
+.wp-options-framework label {
+	margin-right: 10px;
+}
+
+.wp-options-framework-copyright {
+    font-style: italic;
+    font-weight: bold;
+}
+';
+
+		echo '</style>';
+		echo "\n" . '<!-- WOF Custom CSS -->' . "\n";
+	}
+
+	public static function adminFooter ()
+	{
+		echo '
+<!-- WOF JS -->
+<script>
+jQuery(document).ready(function($) {
+
+  $(".wp-options-framework .wpsf-browse").click(function() {
+      var receiver = $(this).prev("input");
+      tb_show("", "media-upload.php?post_id=0&amp;type=file&amp;TB_iframe=true");
+
+      window.original_send_to_editor = window.send_to_editor;
+
+      window.send_to_editor = function(html) {
+
+            $(html).filter("a").each( function(k, v) {
+                $(receiver).val($(v).attr("href"));
+            });
+
+            $(html).filter("img").each( function(k, v) {
+                $(receiver).val($(v).attr("src"));
+            });
+
+          tb_remove();
+          window.send_to_editor = window.original_send_to_editor;
+      }
+
+      return false;
+  });
+});
+</script>
+<!-- WOF JS -->
+';
 	}
 
 	public function showNotices ()
@@ -216,6 +254,20 @@ class Framework {
 			$std = null;
 		}
 
+		$attrs_list = '';
+
+		if ( ! empty ($attrs)) {
+			if (isset($attrs['class'])) {
+				unset ($attrs['class']);
+			}
+
+			foreach ($attrs as $attr_key => $attrs_val) {
+				$attrs_list .= sprintf ('%s="%s" ', esc_attr ($attr_key), esc_attr ($attrs_val));
+			}
+
+			$attrs_list = ' ' . rtrim ($attrs_list);
+		}
+
 		$option_val  = Arr::path ($options, $section.'.'.$id, '.', $std);
 		$option_name = $option.'[' .$section. '][' . $id . ']';
 
@@ -260,7 +312,7 @@ class Framework {
 
 			case 'textarea':
 				$html_esc_func = 'format_for_editor';
-				echo '<textarea class="' . $field_class . '" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" rows="6" cols="46">' . call_user_func($html_esc_func, $option_val) . '</textarea>';
+				echo '<textarea'.$attrs_list.' class="' . $field_class . '" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" rows="6" cols="46">' . call_user_func($html_esc_func, $option_val) . '</textarea>';
 			break;
 
 			case 'password':
@@ -280,16 +332,55 @@ class Framework {
 		 		echo '<input class="regular-text wp-color-picker' . $field_class . '" type="text" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr( $option_val ) . '" />';
 		 	break;
 
+		 	/*
 			case 'date':
 			case 'datetime':
 				$start_year = (int)Arr::get ($args, 'start_year', (current_time ('Y') - 5));
 				$end_year = (int)Arr::get ($args, 'start_year', (current_time ('Y') + 5));
 		 		echo '<input data-timepicker="'.intval ($type == 'datetime').'" data-start-year="'.esc_attr ($start_year).'" data-end-year="'.esc_attr ($end_year).'" readonly="readonly" class="regular-text wp-date-picker' . $field_class . '" type="text" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr( $option_val ) . '" />';
 		 	break;
+		 	*/
+
+			case 'date':
+			case 'datetime':
+			case 'time':
+
+				$min = Arr::get ($args, 'min');
+				$max = Arr::get ($args, 'max');
+
+				if ($type == 'time') {
+					if ( ! empty ($option_val) AND Validation::date($option_val)) {
+						$option_val = substr ($option_val, 0 ,5);
+					}
+				}
+
+				if ($type != 'time') {
+					if (empty ($min)) {
+						$min = date ('Y-m-d', strtotime(current_time ('Y-m-d').' - 5 year'));
+					}
+
+					if (empty ($max)) {
+						$max = date ('Y-m-d', strtotime(current_time ('Y-m-d').' + 5 year'));
+					}
+				}
+
+				if ($type == 'datetime') {
+					$type .= '-local';
+					$min .= 'T00:00';
+					$max .= 'T23:59';
+
+					if ( ! empty ($option_val) AND Validation::date($option_val)) {
+						$date_parts = explode (' ', $option_val);
+						$option_val = sprintf ('%sT%s', $date_parts[0], substr ($date_parts[1], 0, 5));
+					}
+				}
+
+		 		echo '<input min="'.esc_attr($min).'" max="'.esc_attr($max).'" class="regular-text' . $field_class . '" type="'.$type.'" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr( $option_val ) . '" />';
+		 	break;
 
 			case 'text':
 			default:
-		 		echo '<input class="regular-text' . $field_class . '" type="text" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr($option_val) . '" />';
+		 		echo '<input'.$attrs_list.' class="regular-text' . $field_class . '" type="text" id="' . $id . '" name="' . $option_name . '" placeholder="' . $std . '" value="' . esc_attr($option_val) . '" />';
 		 	break;
 		endswitch;
 
@@ -511,7 +602,8 @@ class Framework {
 			'choices'   => array(),
 			'class'     => '',
 			'validator' => '',
-			'sep'       => ''
+			'sep'       => '',
+			'attrs'		=> array(),
 		);
 
 		extract(wp_parse_args($args, $defaults));
@@ -527,7 +619,8 @@ class Framework {
 			'sep'       => $sep,
 			'section'   => $section,
 			'tab'       => $tab,
-			'validator' => $validator
+			'validator' => $validator,
+			'attrs'     => $attrs
 		);
 
 		add_settings_field ($id, $title, array( $this, 'displayFields' ), $this->_getOptionKey ($tab), $section, $field_args);
