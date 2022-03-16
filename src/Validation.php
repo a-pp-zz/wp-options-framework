@@ -37,12 +37,30 @@ class Validation {
     /* check date */
     public static function date ($val)
     {
-        if (preg_match ('#^(?<yy>\d{4})\-(?<mm>\d{2})\-(?<dd>\d{2})\s?(?<time>\d{2}\:\d{2}\:\d{2})?$#iu', $val, $parts)) {
+        if (preg_match ('#^(?<yy>\d{4})\-(?<mm>\d{2})\-(?<dd>\d{2})\s?(?<time>\d{2}\:\d{2}\:\d{2})?$#', $val, $parts)) {
             $mm = sprintf ('%01d', $parts['mm']);
             $dd = sprintf ('%01d', $parts['dd']);
             $yy = sprintf ('%04d', $parts['yy']);
 
             return checkdate ($mm, $dd, $yy) ? $val : '';
+        }
+
+        return '';
+    }
+
+    public static function datetime_local ($val)
+    {
+        if (preg_match ('#^(?<date>\d{4}\-\d{2}\-\d{2})T(?<time>\d{2}\:\d{2})$#', $val, $parts)) {
+            return sprintf ('%s %s:00', $parts['date'], $parts['time']);
+        }
+
+        return '';
+    }
+
+    public static function time_local ($val)
+    {
+        if (preg_match ('#^(?<th>\d{2}\:\d{2})(?<ss>\:\d{2})?$#', $val, $parts)) {
+            return Arr::get ($parts, 'th', '').Arr::get ($parts, 'ss', ':00');
         }
 
         return '';
