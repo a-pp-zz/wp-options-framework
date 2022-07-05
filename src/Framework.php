@@ -140,6 +140,14 @@ class Framework {
     font-style: italic;
     font-weight: bold;
 }
+
+.wp-options-framework img[data-wpsw-preview="1"] {
+	display: none;
+	min-width: 200px;
+	max-width: 500px;
+	display: block;
+	margin: 2px;
+}
 ';
 
 		echo '</style>';
@@ -153,8 +161,25 @@ class Framework {
 <script>
 jQuery(document).ready(function($) {
 
+  var wofUpdatePreview = function (url, target) {
+  	if (url.match(/jpg|jpeg|gif|png/gi)) {
+  		$(target).attr("src", url).show();
+  	} else {
+  		$(target).hide();
+  	}
+  };
+
+  $(".wp-options-framework .wpsf-browse").each(function(ev) {
+  	var inpText = $(this).prev("input[type=\"text\"]"),
+  		prevImg = $(this).next("img");
+
+  	wofUpdatePreview (inpText.val(), prevImg);
+  });
+
   $(".wp-options-framework .wpsf-browse").click(function() {
-      var receiver = $(this).prev("input");
+      var receiver = $(this).prev("input"),
+      	  preview  = $(this).next("img");
+
       tb_show("", "media-upload.php?post_id=0&amp;type=file&amp;TB_iframe=true");
 
       window.original_send_to_editor = window.send_to_editor;
@@ -162,11 +187,15 @@ jQuery(document).ready(function($) {
       window.send_to_editor = function(html) {
 
             $(html).filter("a").each( function(k, v) {
-                $(receiver).val($(v).attr("href"));
+            	var url = $(v).attr("href");
+                $(receiver).val(url);
+                wofUpdatePreview(url, preview);
             });
 
             $(html).filter("img").each( function(k, v) {
-                $(receiver).val($(v).attr("src"));
+            	var url = $(v).attr("src");
+                $(receiver).val(url);
+                wofUpdatePreview(url, preview);
             });
 
           tb_remove();
@@ -326,6 +355,8 @@ jQuery(document).ready(function($) {
 		    case 'file':
 		        echo '<input type="text" name="' . $option_name . '" id="'. $id .'" value="'. esc_attr ($option_val) .'" class="regular-text'. $class .'" /> ';
             echo '<input type="button" data-wpsw-browse="1" class="button wpsf-browse" value="Выбрать файл" />';
+            echo '<img data-wpsw-preview="1" />';
+
         	break;
 
 			case 'color':
