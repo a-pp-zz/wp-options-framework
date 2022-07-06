@@ -22,7 +22,7 @@ class Framework {
 	private $_page_name;
 	private $_transient_key;
 
-	private $_version = '2.1.2';
+	private $_version = '2.1.3';
 
 	public function __construct (array $params = array ()) {
 
