@@ -22,7 +22,7 @@ class Framework {
 	private $_page_name;
 	private $_transient_key;
 
-	private $_version = '2.1.0';
+	private $_version = '2.1.2';
 
 	public function __construct (array $params = array ()) {
 
@@ -115,9 +115,7 @@ class Framework {
 		wp_enqueue_script('jquery');
 
 		//mediaupload
-		wp_enqueue_script('media-upload');
-		wp_enqueue_script('thickbox');
-		wp_enqueue_style('thickbox');
+		wp_enqueue_media();
 
 		//colorpicker
 		wp_enqueue_script('wp-color-picker');
@@ -160,13 +158,18 @@ class Framework {
 <!-- WOF JS -->
 <script>
 jQuery(document).ready(function($) {
+	var wofImagesRegExp = new RegExp (".*\.(jpg|jpeg|png|gif)\$", "gi"),
+  		wofUpdatePreview = function (url, target, receiver) {
 
-  var wofUpdatePreview = function (url, target) {
-  	if (url.match(/jpg|jpeg|gif|png/gi)) {
-  		$(target).attr("src", url).show();
-  	} else {
-  		$(target).hide();
-  	}
+	  	if (url.match(wofImagesRegExp)) {
+	  		$(target).attr("src", url).show();
+	  	} else {
+	  		$(target).hide();
+	  	}
+
+	  	if (typeof receiver != undefined) {
+	  		$(receiver).val(url);
+	  	}
   };
 
   $(".wp-options-framework .wpsf-browse").each(function(ev) {
@@ -177,30 +180,30 @@ jQuery(document).ready(function($) {
   });
 
   $(".wp-options-framework .wpsf-browse").click(function() {
-      var receiver = $(this).prev("input"),
-      	  preview  = $(this).next("img");
+	var receiver = $(this).prev("input"),
+		preview  = $(this).next("img"),
+		libType  = $(receiver).data("libtype")
+        mediaFrame = wp.media({
+            title: "Загрузить файл",
+            multiple : false,
+              button: {
+                text: "Выбрать файл"
+              },
+            library : {
+                type : libType ? libType : null,
+            }
+        });
 
-      tb_show("", "media-upload.php?post_id=0&amp;type=file&amp;TB_iframe=true");
+        mediaFrame.open();
 
-      window.original_send_to_editor = window.send_to_editor;
+        var getAttachment = function () {
+            return mediaFrame.state().get("selection").first().toJSON();
+        };
 
-      window.send_to_editor = function(html) {
-
-            $(html).filter("a").each( function(k, v) {
-            	var url = $(v).attr("href");
-                $(receiver).val(url);
-                wofUpdatePreview(url, preview);
-            });
-
-            $(html).filter("img").each( function(k, v) {
-            	var url = $(v).attr("src");
-                $(receiver).val(url);
-                wofUpdatePreview(url, preview);
-            });
-
-          tb_remove();
-          window.send_to_editor = window.original_send_to_editor;
-      }
+        mediaFrame.on("select", function() {
+            var attachment = getAttachment();
+            wofUpdatePreview(attachment.url, preview, receiver);
+        });
 
       return false;
   });
@@ -353,7 +356,7 @@ jQuery(document).ready(function($) {
 	        break;
 
 		    case 'file':
-		        echo '<input type="text" name="' . $option_name . '" id="'. $id .'" value="'. esc_attr ($option_val) .'" class="regular-text'. $class .'" /> ';
+		        echo '<input'.$attrs_list.' type="text" name="' . $option_name . '" id="'. $id .'" value="'. esc_attr ($option_val) .'" class="regular-text'. $class .'" /> ';
             echo '<input type="button" data-wpsw-browse="1" class="button wpsf-browse" value="Выбрать файл" />';
             echo '<img data-wpsw-preview="1" />';
 
