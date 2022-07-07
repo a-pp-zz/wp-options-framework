@@ -22,7 +22,7 @@ class Framework {
 	private $_page_name;
 	private $_transient_key;
 
-	private $_version = '2.1.3';
+	private $_version = '2.1.4';
 
 	public function __construct (array $params = array ()) {
 
@@ -115,7 +115,11 @@ class Framework {
 		wp_enqueue_script('jquery');
 
 		//mediaupload
-		wp_enqueue_media();
+		//wp_enqueue_media();
+
+		wp_enqueue_script('media-upload');
+		wp_enqueue_script('thickbox');
+		wp_enqueue_style('thickbox');
 
 		//colorpicker
 		wp_enqueue_script('wp-color-picker');
@@ -180,6 +184,38 @@ jQuery(document).ready(function($) {
   });
 
   $(".wp-options-framework .wpsf-browse").click(function() {
+      var receiver = $(this).prev("input"),
+      	  preview  = $(this).next("img");
+
+      tb_show("", "media-upload.php?post_id=0&amp;type=file&amp;TB_iframe=true");
+
+      window.original_send_to_editor = window.send_to_editor;
+
+      window.send_to_editor = function(html) {
+
+  		var url = "";
+
+        $(html).filter("a").each( function(k, v) {
+        	url = $(v).attr("href");
+        	return;
+        });
+
+        $(html).filter("img").each( function(k, v) {
+        	url = $(v).attr("src");
+        	return;
+        });
+
+        $(receiver).val(url);
+        wofUpdatePreview(url, preview);
+
+        tb_remove();
+        window.send_to_editor = window.original_send_to_editor;
+      }
+
+      return false;
+  });
+
+  $(".wp-options-framework .wpsf-browse-media-22222").click(function() {
 	var receiver = $(this).prev("input"),
 		preview  = $(this).next("img"),
 		libType  = $(receiver).data("libtype")
