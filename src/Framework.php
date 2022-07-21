@@ -22,7 +22,7 @@ class Framework {
 	private $_page_name;
 	private $_transient_key;
 
-	private $_version = '2.1.4';
+	private $_version = '2.1.5';
 
 	public function __construct (array $params = array ()) {
 
@@ -144,11 +144,20 @@ class Framework {
 }
 
 .wp-options-framework img[data-wpsw-preview="1"] {
+	margin: 10px 0 0;
 	display: none;
+}
+
+.wp-options-framework img[data-image-layout="landscape"] {
 	min-width: 200px;
 	max-width: 500px;
-	display: block;
-	margin: 2px;
+	display: block !important;
+}
+
+.wp-options-framework img[data-image-layout="portrait"] {
+	min-height: 10px;
+	max-height: 200px;
+	display: block !important;
 }
 ';
 
@@ -167,6 +176,9 @@ jQuery(document).ready(function($) {
 
 	  	if (url.match(wofImagesRegExp)) {
 	  		$(target).attr("src", url).show();
+	  		$(target).on("load", function() {
+	  			$(target).attr("data-image-layout", (this.naturalWidth > this.naturalHeight ? "landscape" : "portrait"));
+    		});
 	  	} else {
 	  		$(target).hide();
 	  	}
@@ -197,11 +209,13 @@ jQuery(document).ready(function($) {
 
         $(html).filter("a").each( function(k, v) {
         	url = $(v).attr("href");
+        	console.log($(v));
         	return;
         });
 
         $(html).filter("img").each( function(k, v) {
         	url = $(v).attr("src");
+        	console.log($(v));
         	return;
         });
 
