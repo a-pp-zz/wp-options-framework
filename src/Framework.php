@@ -22,7 +22,7 @@ class Framework {
 	private $_page_name;
 	private $_transient_key;
 
-	private $_version = '2.1.5';
+	private $_version = '2.1.6';
 
 	public function __construct (array $params = array ()) {
 
@@ -489,7 +489,9 @@ jQuery(document).ready(function($) {
 
 			if ( isset ($tab['sections'] ) && is_array ( $tab['sections'] ) ) {
 				foreach ($tab['sections'] as $slug => $title ) {
-					add_settings_section ($slug, $title, null, $option);
+					add_settings_section ($slug, $title, function () {
+						submit_button();
+					}, $option);
 				}
 			}
 
