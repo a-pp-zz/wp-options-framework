@@ -209,13 +209,11 @@ jQuery(document).ready(function($) {
 
         $(html).filter("a").each( function(k, v) {
         	url = $(v).attr("href");
-        	console.log($(v));
         	return;
         });
 
         $(html).filter("img").each( function(k, v) {
         	url = $(v).attr("src");
-        	console.log($(v));
         	return;
         });
 
